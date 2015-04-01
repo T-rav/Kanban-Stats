@@ -28,28 +28,25 @@ config=jsonconfig2str()
 def getfileDir():
   #get file directory
   f=open(config['picDirectory'] +'timelog.txt', 'r+')
-#  line=f.readline()
+
   lines=f.readlines()
   last=lines[len(lines)-1]
-#  while line:
-#    last=line
-#    line=f.readline()
 
-##  print jsonconfig2str()['picDirectory']
-##  print last
-  filedir=config['picDirectory'] + str(last) + "/"
+  filedir=config['picDirectory'] + "/"
   f.close()
   return filedir
 
 def countDots():
+  print filedir+'pic.jpg'
   original = cv2.imread(filedir+'pic.jpg')
 
   hsv_im = cv2.cvtColor(original,cv2.COLOR_BGR2HSV)
-  YELLOW_MIN = np.array([20, 70, 60],np.uint8)
+
+  YELLOW_MIN = np.array([20, 70, 60],np.uint8) # 12
+# YELLOW_MIN = np.array([20, 20, 20],np.uint8) # 19
   YELLOW_MAX = np.array([35, 255, 255],np.uint8)
   yellow_threshed = cv2.inRange(hsv_im, YELLOW_MIN, YELLOW_MAX)
   yellow_threshed = cv2.medianBlur(yellow_threshed,71)	
-  #cv2.imwrite('yellow_edges.jpg',yellow_threshed)
 
   contours, hierarchy = cv2.findContours(yellow_threshed,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -58,85 +55,40 @@ def countDots():
       
       approx1 = cv2.approxPolyDP(cnt,0.1*cv2.arcLength(cnt,True),True)
 
-      #print cv2.contourArea(cnt)
+      print cv2.contourArea(cnt)
       if cv2.contourArea(cnt) > 1000:
           noDots += 1
 
   return noDots
 
-def remLastLine(file):
-  print 'removing picture'
-  readFile=open('timelog.txt')
-  lines=readFile.readlines()
-  readFile.close()
-
-  w=open(config['picDirectory']+'timelog.txt', 'w')
-  w.writelines([item for item in lines[:-2]])
-  w.write(lines[len(lines)-2].rstrip())
-  w.close()
-
-  shutil.rmtree(file)
-
-def remOld():
-  r=open(config['picDirectory']+'timelog.txt')
-  lines=r.readlines()
-  r.close
-
-  w=open(config['picDirectory']+'timelog.txt', 'w')
-  for item in lines[:-3]:
-    print 'delete'+config['picDirectory']+item.strip()
-    shutil.rmtree(config['picDirectory']+item.strip())
-
-  print 'to file'
-
-  for item in range (-3,0):
-    print lines[len(lines)+item].strip()
-    w.write(lines[len(lines)+item])
-
-  w.close()
-
 print 'starting program'
 #create new file to process in and update timelog
-makeTime()
 filedir=getfileDir()
 print filedir
 
-#take picture
-print 'taking picture'
-os.system('raspistill -t 0 -o '+filedir+'pic.jpg')
+#numDots=countDots()
+#print 'Number of dots found: '+str(numDots)
 
-#Check number of dots
-numDots=countDots()
-print 'Number of dots found: '+str(numDots)
-# jsonconfig2str()['noCols']
+#if numDots == config['noCols']*2+2:
+print 'Correct number of dots'
 
-if numDots == config['noCols']*2+2:
-  print 'Correct number of dots'
+im1 = image_preprocessing(filedir+'pic.jpg')
+im2 = image_preprocessing(filedir+'pic1.jpg')
 
-  #take second picutre
-  print 'taking second picture'
-  os.system('raspistill -t 0 -o '+filedir+'pic1.jpg')
+#compare= compare(grid_signature(im1), 'blue', grid_signature(im2), 'blue')
 
-  im1 = image_preprocessing(filedir+'pic.jpg')
-  im2 = image_preprocessing(filedir+'pic1.jpg')
-
-  compare= compare(grid_signature(im1), 'blue', grid_signature(im2), 'blue')
-
-  if compare:
-      print'pictures match'
+#  if compare:
+#      print'pictures match'
 
       #crop image
-      from crop import *
+from crop import *
       
       #manage images
-      from manage import *
+from manage import *
 
-      remOld()
-  else:
-      print'pictures do not match'
-      remLastLine(filedir)
+#  else:
+#      print'pictures do not match'
 
-else:
-  print 'Incorrect number of dots'
-  remLastLine(filedir)
+#else:
+#  print 'Incorrect number of dots'
 print 'ending program'

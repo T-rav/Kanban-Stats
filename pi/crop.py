@@ -252,43 +252,26 @@ def square_contours(threshed_image, original, name, region, label):
             bx,by,bw,bh = cv2.boundingRect(cnt)
 
             if bh >= 370:
+                # too tall, break it into two pieces
                 newMax = max_row - (bh/2)
                 skew = original[min_row:newMax:, min_col:max_col:, ::]
+                temp_post = get_square(skew, name)
+                post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
+                cv2.imwrite(post_name, temp_post)
                 newMin = min_row + (bh/2)
-                skew1 = original[newMin:max_row:, min_col:max_col:, ::]
-                noOfPostIts += 2
+                noOfPostIts += 1
+                skew = original[newMin:max_row:, min_col:max_col:, ::]
+                temp_post = get_square(skew, name)
+                post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
+                cv2.imwrite(post_name, temp_post)
+                noOfPostIts += 1
             else:
                 skew = original[min_row:max_row:, min_col:max_col:, ::]
                 noOfPostIts += 1
                 temp_post = get_square(skew, name)
+                post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
                 cv2.imwrite(post_name, temp_post)
 
-            temp_post = get_square(skew, name)
-            # TODO : Crate a second temp post so we can write them both out
-
-            xloc = int((max_col + min_col) / 2)
-            yloc = int((max_row + min_row) / 2)
-
-            for cnt in range(0, noCols):
-                if (xloc > region[cnt] and xloc < region[cnt + 1]):
-                    reg = cnt + 1
-
-            sign = grid_signature(binarize(temp_post))
-            #print signature
-
-            post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
-            txt_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.json'
-
-            j = json.dumps(
-                {'label': noOfPostIts + label, 'signature': sign.tolist(), 'x': xloc, 'y': yloc, 'column': reg,
-                 'issueID': filedir[2:] + 'post' + str(noOfPostIts + label) + '.jpg', 'type': name}, indent=4)
-            f = open(txt_name, 'w')
-            f.write(j)
-            f.close()
-
-            #Save signature and post_it in the working directory.
-            #np.savetxt(txt_name,sign,'%10.8f')
-            cv2.imwrite(post_name, temp_post)
 
     return threshed_image, noOfPostIts
 
@@ -304,7 +287,7 @@ def blue_blobs(hsv_img, original, region):
     #blue_threshed = cv2.GaussianBlur(blue_threshed,(5,5),1)
     #cv2.imwrite(filedir+'blue.jpg',blue_threshed)
     b_name = 'blue'
-    b_threshed, blues = square_contours(blue_threshed, original, b_name, region, label=0)
+    b_threshed, blues = square_contours(blue_threshed, original, b_name, region, label=0, MIN=BLUE_MIN,MAX=BLUE_MAX)
     cv2.imwrite(filedir+'/raw/blue_contours.jpg',b_threshed)
     print str(blues) + ' blues found'
     return blues
@@ -319,7 +302,7 @@ def pink_blobs(hsv_img, original, region, label):
     pur_pink_threshed = cv2.medianBlur(pur_pink_threshed, 21)
     #cv2.imwrite(filedir+'purpink.jpg',pur_pink_threshed)
     p_name = 'purpink'
-    p_threshed, purpinks = square_contours(pur_pink_threshed, original, p_name, region, label)
+    p_threshed, purpinks = square_contours(pur_pink_threshed, original, p_name, region, label, PINK_MIN, PINK_MAX)
     cv2.imwrite(filedir+'/raw/purpink_contours.jpg',p_threshed)
     print str(purpinks) + ' purpinks found'
     return purpinks
@@ -334,7 +317,7 @@ def green_blobs(hsv_img, original, region, label):
     green_threshed = cv2.medianBlur(green_threshed, 21)
     #cv2.imwrite(filedir+'green.jpg',green_threshed)
     g_name = 'green'
-    g_threshed, greens = square_contours(green_threshed, original, g_name, region, label)
+    g_threshed, greens = square_contours(green_threshed, original, g_name, region, label, GREEN_MIN, GREEN_MAX)
     cv2.imwrite(filedir+'/raw/green_contours.jpg',g_threshed)
     print str(greens) + ' greens found'
     return greens
@@ -348,7 +331,7 @@ def yellow_blobs(hsv_img, original, region, label):
     #Noise removal
     yellow_threshed = cv2.medianBlur(yellow_threshed, 21)
     y_name = 'yellow'
-    y_threshed, yellows = square_contours(yellow_threshed, original, y_name, region, label)
+    y_threshed, yellows = square_contours(yellow_threshed, original, y_name, region, label, YELLOW_MIN, YELLOW_MAX)
     cv2.imwrite(filedir+'/raw/yellow_contours.jpg',y_threshed)
     print str(yellows) + ' yellows found'
     return yellows
@@ -359,9 +342,9 @@ def orange_blobs(hsv_img, original, region, label):
     ORANGE_MAX = np.array([30, 255, 255], np.uint8)
     orange_threshed = cv2.inRange(hsv_img, ORANGE_MIN, ORANGE_MAX)
     #Noise removal
-    yellow_threshed = cv2.medianBlur(orange_threshed, 21)
+    orange_threshed = cv2.medianBlur(orange_threshed, 21)
     o_name = 'orange'
-    o_threshed, oranges = square_contours(yellow_threshed, original, o_name, region, label)
+    o_threshed, oranges = square_contours(orange_threshed, original, o_name, region, label, ORANGE_MIN, ORANGE_MAX)
     cv2.imwrite(filedir+'/raw/orange_contours.jpg',o_threshed)
     print str(oranges) + ' oranges found'
     return oranges

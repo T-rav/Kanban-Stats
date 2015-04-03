@@ -178,35 +178,11 @@ def rectify(h):
 
 #This function addresses the skewness of post-its.
 #Argument 'skew_im' is an outline of a post-it along the vertices.
-def get_square(skew_im, name):
+def get_square(skew_im, name, MIN, MAX):
     skew_im_copy = skew_im.copy()
     skew_im_copy = cv2.cvtColor(skew_im_copy, cv2.COLOR_BGR2HSV)
-    warp = cv2.resize(skew_im, (450, 450))
-
-    if name == 'blue':
-        BLUE_MIN = np.array([75, 50, 60], np.uint8)
-        BLUE_MAX = np.array([130, 255, 255], np.uint8)
-        threshed = cv2.inRange(skew_im_copy, BLUE_MIN, BLUE_MAX)
-
-    if name == 'purpink':
-        PINK_MIN = np.array([130, 80, 50], np.uint8)
-        PINK_MAX = np.array([180, 255, 255], np.uint8)
-        threshed = cv2.inRange(skew_im_copy, PINK_MIN, PINK_MAX)
-
-    if name == 'green':
-        GREEN_MIN = np.array([35, 100, 60], np.uint8)
-        GREEN_MAX = np.array([80, 255, 255], np.uint8)
-        threshed = cv2.inRange(skew_im_copy, GREEN_MIN, GREEN_MAX)
-
-    if name == 'yellow':
-        YELLOW_MIN = np.array([20, 70, 60], np.uint8)
-        YELLOW_MAX = np.array([35, 255, 255], np.uint8)
-        threshed = cv2.inRange(skew_im_copy, YELLOW_MIN, YELLOW_MAX)
-
-    if name == 'orange':
-        ORANGE_MIN = np.array([20, 70, 60], np.uint8)
-        ORANGE_MAX = np.array([35, 255, 255], np.uint8)
-        threshed = cv2.inRange(skew_im_copy, ORANGE_MIN, ORANGE_MAX)
+    warp = cv2.resize(skew_im, (475, 475))
+    threshed = cv2.inRange(skew_im_copy, MIN, MAX)
 
     #Only one post-it must be detected. Check this from noOfPostIts
     contours, hierarchy = cv2.findContours(threshed, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -219,9 +195,9 @@ def get_square(skew_im, name):
             cv2.drawContours(threshed, [cnt], 0, (255, 255, 255), 2)
             my_approx = rectify(approx1)
             noOfPostIts1 += 1
-            h = np.array([[0, 0], [449, 0], [449, 449], [0, 449]], np.float32)
+            h = np.array([[0, 0], [474, 0], [474, 474], [0, 474]], np.float32)
             retval = cv2.getPerspectiveTransform(my_approx, h)
-            warp = cv2.warpPerspective(skew_im, retval, (450, 450))
+            warp = cv2.warpPerspective(skew_im, retval, (475, 475))
     if noOfPostIts1 != 1:
         print 'CHECK DUDE. ' + name
 
@@ -229,7 +205,7 @@ def get_square(skew_im, name):
 
 
 #Find post-Its and save them.
-def square_contours(threshed_image, original, name, region, label):
+def square_contours(threshed_image, original, name, region, label, MIN, MAX):
     contours, hierarchy = cv2.findContours(threshed_image, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     noOfPostIts = 0
     reg = 0
@@ -252,26 +228,26 @@ def square_contours(threshed_image, original, name, region, label):
             bx,by,bw,bh = cv2.boundingRect(cnt)
 
             if bh >= 370:
-                # too tall, break it into two pieces
+                # too tall, break it into two pieces4
+                # TODO : Break until 370 is not the height of the region remainingd
                 newMax = max_row - (bh/2)
                 skew = original[min_row:newMax:, min_col:max_col:, ::]
-                temp_post = get_square(skew, name)
+                temp_post = get_square(skew, name, MIN, MAX)
                 post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
                 cv2.imwrite(post_name, temp_post)
                 newMin = min_row + (bh/2)
                 noOfPostIts += 1
                 skew = original[newMin:max_row:, min_col:max_col:, ::]
-                temp_post = get_square(skew, name)
+                temp_post = get_square(skew, name, MIN, MAX)
                 post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
                 cv2.imwrite(post_name, temp_post)
                 noOfPostIts += 1
             else:
                 skew = original[min_row:max_row:, min_col:max_col:, ::]
                 noOfPostIts += 1
-                temp_post = get_square(skew, name)
+                temp_post = get_square(skew, name, MIN, MAX)
                 post_name = filedir + '/posts/post' + str(noOfPostIts + label) + '.jpg'
                 cv2.imwrite(post_name, temp_post)
-
 
     return threshed_image, noOfPostIts
 
@@ -374,8 +350,6 @@ def blob(img):
 def crop():
     #Read image from which post-its will be cropped.
     im_2_crop = cv2.imread(filedir + 'pic.jpg')
-    #im_2_crop = cv2.imread('dog_ear.jpg')
-    #im_2_crop = cv2.resize(im_2_crop, (2000,2000))
     img = blob(im_2_crop)
 
 

@@ -233,6 +233,8 @@ def square_contours(threshed_image, original, name, region, label):
     contours, hierarchy = cv2.findContours(threshed_image, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     noOfPostIts = 0
     reg = 0
+    newMax = 0
+    newMin = 0
     # TODO : Fix when multiple stickies are merged, aka extract the shapes
     # TODO : ID anti-patterns - multiple stickies grouped and writen on, multiple stickies stacked, etc..
     for cnt in contours:
@@ -247,11 +249,22 @@ def square_contours(threshed_image, original, name, region, label):
             min_col = square[::, 0:1:].min()
             max_col = square[::, 0:1:].max()
 
-            # TODO : I believe the above rectify code is broken when stickies are "merged"
+            bx,by,bw,bh = cv2.boundingRect(cnt)
 
-            skew = original[min_row:max_row:, min_col:max_col:, ::]
-            noOfPostIts += 1
+            if bh >= 370:
+                newMax = max_row - (bh/2)
+                skew = original[min_row:newMax:, min_col:max_col:, ::]
+                newMin = min_row + (bh/2)
+                skew1 = original[newMin:max_row:, min_col:max_col:, ::]
+                noOfPostIts += 2
+            else:
+                skew = original[min_row:max_row:, min_col:max_col:, ::]
+                noOfPostIts += 1
+                temp_post = get_square(skew, name)
+                cv2.imwrite(post_name, temp_post)
+
             temp_post = get_square(skew, name)
+            # TODO : Crate a second temp post so we can write them both out
 
             xloc = int((max_col + min_col) / 2)
             yloc = int((max_row + min_row) / 2)
@@ -259,8 +272,6 @@ def square_contours(threshed_image, original, name, region, label):
             for cnt in range(0, noCols):
                 if (xloc > region[cnt] and xloc < region[cnt + 1]):
                     reg = cnt + 1
-                else:
-                    print "FAIL"
 
             sign = grid_signature(binarize(temp_post))
             #print signature

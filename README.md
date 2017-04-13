@@ -1,4 +1,4 @@
-Post-Its
+Kanban-Stats
 ========
 Design brief and description of program 
 ---
